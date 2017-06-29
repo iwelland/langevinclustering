@@ -1,8 +1,8 @@
 import numpy as np
 cimport numpy as np
 import random
-from mpi4py import MPI
-from mpi4py cimport MPI
+#from mpi4py import MPI
+#from mpi4py cimport MPI
 
 #ctypedef np.float64 float64
 
@@ -14,8 +14,9 @@ def potential(np.ndarray x,np.ndarray data, double sigma):
     cdef np.ndarray xnorm = prodx.sum(1)
     cdef np.ndarray proddata = data*data
     cdef np.ndarray datanorm = proddata.sum(1)
+    
     for i in xrange(len(x)):
-        term= (xnorm[i] - 2*np.dot(x[i],data[i].T) + datanorm[i])
+        term= (xnorm[i] - 2*np.dot(x[i],data[i]) + datanorm[i])*(2*sigma**2)**-1
         potential +=term
         #term2 = np.dot(diff,diff)/(2*sigma**2)
     return potential
@@ -25,7 +26,7 @@ def dynamics(x,t):
     pass
 
     
-def monte_carlo(np.ndarray x,np.ndarray data,double sigma,double scale=1,int t=100,int stride=10):
+def monte_carlo(np.ndarray x,np.ndarray data,double sigma,double scale=1,int t=100,int stride=10,double temperature=100):
 
     cdef int x_size = x.shape[0]
     cdef int y_size = x.shape[1]
@@ -38,29 +39,32 @@ def monte_carlo(np.ndarray x,np.ndarray data,double sigma,double scale=1,int t=1
     cdef double index
     cdef int accepted
     cdef np.ndarray random_gauss
+    cdef double ep0
+    cdef double ept
+
     accepted = 0
     trajectory = np.empty((t/stride,len(x),len(x[0])))
+    trajectory[0] = data[0]
     for step in xrange(t):
         if step == 0:
             x_0 = x
-        else:
-            x_0 = trajectory[step/stride-1]
-        random_gauss = np.random.normal(x_0,scale=scale)
-        x_trial = random_gauss
-        p0 = np.exp(-potential(x_0,data,sigma)*scale**-1)
-        pt = np.exp(-potential(x_trial,data,sigma)*scale**-1)
+        x_trial = np.random.normal(x_0,scale=scale)
+        p0 = potential(x_0,data,sigma)
+        pt = potential(x_trial,data,sigma)
+        ep0 = np.exp(-potential(x_0,data,sigma)*(temperature)**-1)
+        ept = np.exp(-potential(x_trial,data,sigma)*(temperature)**-1)
         if pt < p0:
             accepted +=1
-            x_new = x_trial
-        elif pt > p0:
+            x_0 = x_trial
+        elif pt >= p0:
             alpha = np.random.uniform()
-            if alpha < pt/(p0+pt):
-                x_new = x_trial
+            if alpha < ept/(ep0+ept):
+                x_0 = x_trial
                 accepted+=1
             else:
                 x_new = x_0
         if step % stride == 0:
-            trajectory[step/stride]=x_new
+            trajectory[step/stride]=x_0
     print(float(accepted)/float(t))
     return trajectory
 
