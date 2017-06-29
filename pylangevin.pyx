@@ -13,7 +13,7 @@ def potential(np.ndarray x,np.ndarray data, double sigma):
     cdef np.ndarray proddata = data*data
     cdef np.ndarray datanorm = proddata.sum(1)
     for i in xrange(len(x)):
-        term= (float(1)/float(2*sigma**2)) * (xnorm[i] - 2*np.dot(x[i],data[i].T) + datanorm[i])
+        term= (xnorm[i] - 2*np.dot(x[i],data[i].T) + datanorm[i])
         potential +=term
         #term2 = np.dot(diff,diff)/(2*sigma**2)
     return potential
@@ -45,8 +45,8 @@ def monte_carlo(np.ndarray x,np.ndarray data,double sigma,double scale=1,int t=1
             x_0 = trajectory[step/stride-1]
         random_gauss = np.random.normal(x_0,scale=scale)
         x_trial = random_gauss
-        p0 = potential(x_0,data,sigma)
-        pt = potential(x_trial,data,sigma)
+        p0 = np.exp(-potential(x_0,data,sigma)*scale**-1)
+        pt = np.exp(-potential(x_trial,data,sigma)*scale**-1)
         if pt < p0:
             accepted +=1
             x_new = x_trial
@@ -84,8 +84,8 @@ def single_particle_random_monte_carlo(np.ndarray x,np.ndarray data,double sigma
         #x_trial = np.empty(x_0.shape)
         x_trial[::] = x_0
         x_trial[index] = np.random.normal(x_0[index],scale=scale)
-        p0 = potential(x_0,data,sigma)
-        pt = potential(x_trial,data,sigma)
+        p0 = np.exp(-potential(x_0,data,sigma)*scale**-1)
+        pt = np.exp(-potential(x_trial,data,sigma)*scale**-1)
         if pt < p0:
             x_new = x_trial
         elif pt > p0:
@@ -117,8 +117,8 @@ def single_particle_sequential_monte_carlo(np.ndarray x,np.ndarray data,double s
         x_trial[::] = x_0
         for particle in xrange(len(x_trial)):
             x_trial[particle] += np.random.normal(x_0[particle],scale=scale)
-            p0 = potential(x_0,data,sigma)
-            pt = potential(x_trial,data,sigma)
+            p0 = np.exp(-potential(x_0,data,sigma)*scale**-1)
+            pt = np.exp(-potential(x_trial,data,sigma)*scale**-1)
             if pt < p0:
                 x_new = x_trial
             elif pt > p0:
