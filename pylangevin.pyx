@@ -1,6 +1,8 @@
 import numpy as np
 cimport numpy as np
 import random
+from mpi4py import MPI
+from mpi4py cimport MPI
 
 #ctypedef np.float64 float64
 
@@ -13,7 +15,7 @@ def potential(np.ndarray x,np.ndarray data, double sigma):
     cdef np.ndarray proddata = data*data
     cdef np.ndarray datanorm = proddata.sum(1)
     for i in xrange(len(x)):
-        term= (float(1)/float(2*sigma**2)) * (xnorm[i] - 2*np.dot(x[i],data[i].T) + datanorm[i])
+        term= (xnorm[i] - 2*np.dot(x[i],data[i].T) + datanorm[i])
         potential +=term
         #term2 = np.dot(diff,diff)/(2*sigma**2)
     return potential
