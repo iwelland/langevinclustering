@@ -1,0 +1,5 @@
+#Ignore .o and .so files from compiling
+*.so
+*.o
+*.ipynb
+*.pyc
