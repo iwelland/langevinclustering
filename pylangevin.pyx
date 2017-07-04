@@ -6,7 +6,7 @@ import random
 
 #ctypedef np.float64 float64
 
-def potential(np.ndarray x,np.ndarray data, double sigma):
+def potential_old(np.ndarray x,np.ndarray data, double sigma):
 
     cdef double term2
     cdef double potential = 0
@@ -21,12 +21,35 @@ def potential(np.ndarray x,np.ndarray data, double sigma):
         #term2 = np.dot(diff,diff)/(2*sigma**2)
     return potential
         
+def potential_constant(np.ndarray data, double sigma):
+
+    cdef np.ndarray datanorm = data*data
+    cdef pc = np.exp(-datanorm).sum()
+    
+    return pc
+
+def potential(np.ndarray x,np.ndarray data, double sigma, double pc):
+
+    cdef double term2
+    cdef double potential = pc
+    cdef np.ndarray prodx = x*x
+    cdef np.ndarray xnorm = prodx.sum(1)
+    cdef np.ndarray xdotdata = np.dot(x,data.T)
+    
+   
+
+    for i in xrange(len(x)):
+        term1 = xnorm[i]/(2*sigma**2)
+        term2 = 1/(2*sigma**2)*np.log(np.exp(-2*xdotdata[i]).sum())
+        potential += term1 + term2
+        #term2 = np.dot(diff,diff)/(2*sigma**2)
+    return potential
 
 def dynamics(x,t):
     pass
 
     
-def monte_carlo(np.ndarray x,np.ndarray data,double sigma,double scale=1,int t=100,int stride=10,double temperature=100):
+def monte_carlo(np.ndarray x,np.ndarray data,double pc,double sigma=1,double scale=1,int t=100,int stride=10,double temperature=100):
 
     cdef int x_size = x.shape[0]
     cdef int y_size = x.shape[1]
@@ -49,10 +72,10 @@ def monte_carlo(np.ndarray x,np.ndarray data,double sigma,double scale=1,int t=1
         if step == 0:
             x_0 = x
         x_trial = np.random.normal(x_0,scale=scale)
-        p0 = potential(x_0,data,sigma)
-        pt = potential(x_trial,data,sigma)
-        ep0 = np.exp(-potential(x_0,data,sigma)*(temperature)**-1)
-        ept = np.exp(-potential(x_trial,data,sigma)*(temperature)**-1)
+        p0 = potential(x_0,data,sigma,pc)
+        pt = potential(x_trial,data,sigma,pc)
+        ep0 = np.exp(-p0*(temperature)**-1)
+        ept = np.exp(-pt*(temperature)**-1)
         if pt < p0:
             accepted +=1
             x_0 = x_trial
